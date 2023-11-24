@@ -33,7 +33,8 @@ class Element(Enum):
 
 
 class Gui:
-    def __init__(self, config: config.Config, window_width: int, window_height: int, logo_path: str, log: logging.Logger):
+    def __init__(self, config: config.Config, window_width: int, window_height: int, logo_path: str,
+                 log: logging.Logger):
         self._terminal_buf = ""
         self._log = log
         self.config = config
@@ -106,14 +107,14 @@ class Gui:
         self.ids_to_elements = None
         dpg.create_context()
 
-    def handle_connect_callback(self, sender, app_data):
+    def _handle_connect_callback(self, sender, app_data):
         self.on_connect_clicked.dispatch(sender, app_data)
 
-    def handle_save_settings_callback(self):
+    def _handle_save_settings_callback(self):
         self.config.write_config_to_disk()
         self._log.info("Settings Saved!")
 
-    def handle_clear_console_callback(self, sender, app_data):
+    def _handle_clear_console_callback(self, sender, app_data):
         self.on_clear_console_clicked.dispatch(sender, app_data)
 
     def handle_active_muscle_update(self, parameter):
@@ -133,10 +134,10 @@ class Gui:
                 element_id, label=label
             )
 
-    def handle_toggle_interactions_callback(self, sender, app_data):
+    def _handle_toggle_interactions_callback(self, sender, app_data):
         self.on_toggle_interaction_clicked.dispatch()
 
-    def handle_input_change(self, sender, app_data):
+    def _handle_input_change(self, sender, app_data):
         try:
             element = self.ids_to_elements.get(sender)
             config_key = self.element_to_config_key.get(element)
@@ -153,7 +154,7 @@ class Gui:
             self._log.error("Got Exception in handle_input_change: %s" % err)
             self._log.error("This error is probably caused by another error. Please see below messages")
 
-    def handle_contribute_callback(self, sender, app_data):
+    def _handle_contribute_callback(self, sender, app_data):
         webbrowser.open("https://github.com/uzair-ashraf/vrc-owo-suit")
 
     def handle_connecting_state_change(self, next_state):
@@ -170,7 +171,7 @@ class Gui:
                 self.elements[Element.CONNECT_BUTTON], label="Connect", enabled=True)
             return
 
-    def create_centered_image(self, tag: str, path: str):
+    def _create_centered_image(self, tag: str, path: str):
         image_width, image_height, _, data = dpg.load_image(path)
 
         with dpg.texture_registry():
@@ -191,36 +192,36 @@ class Gui:
 
         return resize_callback
 
-    def print_terminal(self, text: str) -> None:
+    def _print_terminal(self, text: str) -> None:
         self._terminal_buf = text + '\n' + self._terminal_buf
         if self._is_initialized:
             dpg.set_value(self.elements[Element.TERMINAL_WINDOW_INPUT], self._terminal_buf)
 
-    def on_clear_console(self, *args) -> None:
+    def _on_clear_console(self, *args) -> None:
         self._terminal_buf = ""
-        self.print_terminal("Cleared.")
+        self._print_terminal("Cleared.")
 
-    def add_listeners(self) -> None:
-        self.on_clear_console_clicked.add_listener(self.on_clear_console)
+    def _add_listeners(self) -> None:
+        self.on_clear_console_clicked.add_listener(self._on_clear_console)
 
-    def create_owo_suit_ip_address_input(self):
+    def _create_owo_suit_ip_address_input(self):
         owo_ip = self.config.get_by_key("owo_ip") or ""
         dpg.add_text("OWO Suit IP Address")
         self.elements[Element.IP_ADDRESS_INPUT] = dpg.add_input_text(default_value=owo_ip,
-                                                                     width=-1, callback=self.handle_input_change)
+                                                                     width=-1, callback=self._handle_input_change)
 
-    def create_detect_address_checkbox(self):
+    def _create_detect_address_checkbox(self):
         should_detect_ip = self.config.get_by_key("should_detect_ip") or True
         self.elements[Element.DETECT_IP_ADDRESS_CHECKBOX] = dpg.add_checkbox(
-            label="Automatically Detect IP Address", default_value=should_detect_ip, callback=self.handle_input_change)
+            label="Automatically Detect IP Address", default_value=should_detect_ip, callback=self._handle_input_change)
 
-    def create_server_port_input(self):
+    def _create_server_port_input(self):
         server_port = self.config.get_by_key("server_port") or 9001
         dpg.add_text("Server Port Number")
         self.elements[Element.SERVER_PORT_NUMBER_INPUT] = dpg.add_input_int(default_value=server_port,
-                                                                            width=-1, callback=self.handle_input_change)
+                                                                            width=-1, callback=self._handle_input_change)
 
-    def create_frequency_slider(self):
+    def _create_frequency_slider(self):
         frequency = self.config.get_by_key("frequency") or 100
         dpg.add_text("Frequency Settings")
         self.elements[Element.FREQUENCY_SETTING_SLIDER] = dpg.add_slider_int(
@@ -228,15 +229,15 @@ class Gui:
             max_value=100,
             width=-1,
             default_value=frequency,
-            callback=self.handle_input_change
+            callback=self._handle_input_change
         )
 
-    def create_intensity_settings(self):
+    def _create_intensity_settings(self):
         dpg.add_text("Intensity Settings")
         for element, label in self.element_labels.items():
-            self.create_intensity_slider(element, label)
+            self._create_intensity_slider(element, label)
 
-    def create_intensity_slider(self, element: Element, label: str):
+    def _create_intensity_slider(self, element: Element, label: str):
         intensities_map = self.element_to_config_key.get("intensities")
         config_key = intensities_map.get(element)
         intensities = self.config.get_by_key("intensities")
@@ -245,48 +246,49 @@ class Gui:
         else:
             default_value = 0
         self.elements[element] = dpg.add_slider_int(default_value=default_value, min_value=0, width=-120,
-                                                    max_value=100, label=label, callback=self.handle_input_change)
+                                                    max_value=100, label=label, callback=self._handle_input_change)
 
-    def create_logs_output(self):
+    def _create_logs_output(self):
         dpg.add_text("Logs")
         self.elements[Element.TERMINAL_WINDOW_INPUT] = dpg.add_input_text(
             multiline=True, readonly=True, height=90, width=-1)
         dpg.set_value(self.elements[Element.TERMINAL_WINDOW_INPUT], self._terminal_buf)
-    def create_button_group(self):
+
+    def _create_button_group(self):
         with dpg.group(horizontal=True):
             self.elements[Element.CONNECT_BUTTON] = dpg.add_button(label="Connect",
-                                                                   callback=self.handle_connect_callback)
+                                                                   callback=self._handle_connect_callback)
             self.elements[Element.SAVE_SETTINGS_BUTTON] = dpg.add_button(label="Save Settings",
-                                                                         callback=self.handle_save_settings_callback)
+                                                                         callback=self._handle_save_settings_callback)
             self.elements[Element.CLEAR_CONSOLE_BUTTON] = dpg.add_button(label="Clear Console",
-                                                                         callback=self.handle_clear_console_callback)
+                                                                         callback=self._handle_clear_console_callback)
             self.elements[Element.TOGGLES_INTERACTIONS_BUTTON] = dpg.add_button(label="Toggle Interactions",
-                                                                                callback=self.handle_toggle_interactions_callback)
+                                                                                callback=self._handle_toggle_interactions_callback)
 
-    def create_connect_startup_checkbox(self):
+    def _create_connect_startup_checkbox(self):
         should_connect_on_startup = self.config.get_by_key(
             "should_connect_on_startup"
         ) or False
         self.elements[Element.CONNECT_ON_STARTUP_CHECKBOX] = dpg.add_checkbox(
             default_value=should_connect_on_startup,
             label="Automatically Connect on Startup",
-            callback=self.handle_input_change
+            callback=self._handle_input_change
         )
 
-    def create_footer(self):
+    def _create_footer(self):
         with dpg.group(width=-1):
             self.elements[Element.CONTRIBUTE_BUTTON] = dpg.add_button(
                 label="\t\t\t\t  Created by Shadoki.\nThis application is not affiliated with VRChat or OWO.\n\t\t\t\t  Want to contribute?",
                 width=-1,
-                callback=self.handle_contribute_callback
+                callback=self._handle_contribute_callback
             )
 
-    def validate_connect_on_startup(self):
+    def _validate_connect_on_startup(self):
         should_connect_on_startup = self.config.get_by_key(
             "should_connect_on_startup"
         )
         if should_connect_on_startup:
-            self.handle_connect_callback(Element.CONNECT_BUTTON, None)
+            self._handle_connect_callback(Element.CONNECT_BUTTON, None)
 
     def init(self):
         if self._is_initialized:  # Make sure to only run init once
@@ -295,27 +297,27 @@ class Gui:
         dpg.create_context()
         with dpg.window(tag="MAIN_WINDOW"):
             dpg.add_spacer(height=20)
-            handle_centered_image = self.create_centered_image(
+            handle_centered_image = self._create_centered_image(
                 "logo", self.logo_path)
             dpg.add_spacer(height=20)
-            self.create_owo_suit_ip_address_input()
-            self.create_detect_address_checkbox()
+            self._create_owo_suit_ip_address_input()
+            self._create_detect_address_checkbox()
             dpg.add_spacer(height=20)
-            self.create_server_port_input()
+            self._create_server_port_input()
             dpg.add_spacer(height=20)
-            self.create_frequency_slider()
+            self._create_frequency_slider()
             dpg.add_spacer(height=20)
-            self.create_intensity_settings()
+            self._create_intensity_settings()
             dpg.add_spacer(height=20)
-            self.create_logs_output()
+            self._create_logs_output()
             dpg.add_spacer(height=20)
-            self.create_button_group()
+            self._create_button_group()
             dpg.add_spacer(height=20)
-            self.create_connect_startup_checkbox()
+            self._create_connect_startup_checkbox()
             dpg.add_spacer(height=20)
-            self.create_footer()
+            self._create_footer()
 
-        self.add_listeners()
+        self._add_listeners()
         dpg.create_viewport(title='VRChat OWO Suit',
                             width=self.window_width, height=self.window_height)
         dpg.set_viewport_resize_callback(handle_centered_image)
@@ -326,7 +328,7 @@ class Gui:
         dpg.set_primary_window("MAIN_WINDOW", True)
 
     def run(self):
-        self.validate_connect_on_startup()
+        self._validate_connect_on_startup()
         dpg.start_dearpygui()
 
     def cleanup(self):
@@ -339,4 +341,4 @@ class GuiLogger(logging.Handler):
         self._gui = gui
 
     def emit(self, record: logging.LogRecord) -> None:
-        self._gui.print_terminal(self.formatter.format(record))
+        self._gui._print_terminal(self.formatter.format(record))

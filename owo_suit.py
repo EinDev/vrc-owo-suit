@@ -12,8 +12,10 @@ import os
 
 dll_path = os.path.abspath(os.path.join(os.path.dirname(__file__), './owo/OWO.dll'))
 from System.Reflection import Assembly
+
 Assembly.UnsafeLoadFrom(dll_path)
 from OWOGame import OWO, SensationsFactory, Muscle, ConnectionState
+
 
 class OWOSuit:
     def __init__(self, config: Config, gui: Gui, log: logging.Logger):
@@ -40,7 +42,7 @@ class OWOSuit:
         self.is_paused = False
         self.on_connection_state_change = Event()
 
-    def toggle_interactions(self):
+    def _toggle_interactions(self):
         self.is_paused = not self.is_paused
         if self.is_paused:
             self._log.info(
@@ -49,7 +51,7 @@ class OWOSuit:
             self._log.info(
                 "Interactions Continued.")
 
-    def create_sensation(self, parameter: str):
+    def _create_sensation(self, parameter: str):
         frequency = self.config.get_by_key("frequency") or 50
         intensities = self.config.get_by_key("intensities")
         intensity = intensities.get(parameter)
@@ -65,7 +67,7 @@ class OWOSuit:
                             parameter = self.muscles_to_parameters.get(muscle)
                             self.gui.handle_active_muscle_update(
                                 parameter=parameter)
-                            sensation = self.create_sensation(parameter)
+                            sensation = self._create_sensation(parameter)
                             self._log.debug("OWO#Send(%s, %s) begin" % (sensation, muscle))
                             OWO.Send(sensation, muscle)
                             self._log.debug("OWO#Send end")
@@ -75,7 +77,7 @@ class OWOSuit:
                 pass
             time.sleep(.3)
 
-    def on_collission_enter(self, address: str, *args) -> None:
+    def _on_collission_enter(self, address: str, *args) -> None:
         if address not in self.osc_parameters:
             return
         if len(args) != 1:
@@ -90,52 +92,53 @@ class OWOSuit:
             self.active_muscles.discard(muscle)
 
     def map_parameters(self, dispatcher: dispatcher.Dispatcher) -> None:
-        dispatcher.set_default_handler(self.on_collission_enter)
+        dispatcher.set_default_handler(self._on_collission_enter)
 
-    def connect(self) -> bool:
+    def _connect(self) -> bool:
         owo_ip = self.config.get_by_key("owo_ip")
         if type(owo_ip) is str and owo_ip != "":
             self._log.debug("OWO#Connect(%s) begin" % owo_ip)
             OWO.Connect(owo_ip)
             self._log.debug("OWO#Connect end" % owo_ip)
-            if self.is_connected():
+            if self._connected:
                 return True
         self._log.debug("OWO#AutoConnect() begin")
         OWO.AutoConnect()
         self._log.debug("OWO#AutoConnect end")
-        return self.is_connected()
+        return self._connected
 
-    def is_connected(self) -> bool:
+    @property
+    def _connected(self) -> bool:
         return OWO.ConnectionState == ConnectionState.Connected
 
-    def dispatch_connection_state_change(self) -> None:
+    def _dispatch_connection_state_change(self) -> None:
         if self.is_connecting:
             self.on_connection_state_change.dispatch('CONNECTING')
             return
-        if self.is_connected():
+        if self._connected:
             self.on_connection_state_change.dispatch('CONNECTED')
             return
         self.on_connection_state_change.dispatch('DISCONNECTED')
 
-    def retry_connect(self, *args) -> None:
+    def _retry_connect(self, *args) -> None:
         if self.is_connecting:
             return
         self._log.info("Connecting to suit...")
         self.is_connecting = True
-        self.dispatch_connection_state_change()
-        ok = self.connect()
+        self._dispatch_connection_state_change()
+        ok = self._connect()
         while not ok:
-            ok = self.connect()
+            ok = self._connect()
             time.sleep(1)
         self.is_connecting = False
-        if self.is_connected():
+        if self._connected:
             self._log.info("Connection complete!")
         self.has_connected_already = True
-        self.dispatch_connection_state_change()
+        self._dispatch_connection_state_change()
 
     def init(self) -> None:
-        self.gui.on_connect_clicked.add_listener(self.retry_connect)
+        self.gui.on_connect_clicked.add_listener(self._retry_connect)
         self.gui.on_toggle_interaction_clicked.add_listener(
-            self.toggle_interactions)
+            self._toggle_interactions)
         self.on_connection_state_change.add_listener(
             self.gui.handle_connecting_state_change)

@@ -25,7 +25,7 @@ class Config:
         self.current_config = None
 
     @property
-    def default_config(self):
+    def _default_config(self):
         server_port = get_unused_port(9001, 9010)
         return {
             "server_port": server_port,
@@ -52,10 +52,10 @@ class Config:
             return self.current_config.get(key)
 
     def update(self, key: str, nextValue):
-        if (key in self.current_config):
+        if key in self.current_config:
             self.current_config[key] = nextValue
 
-    def read_config_from_disk(self):
+    def _read_config_from_disk(self):
         appdata_path = os.environ.get('LOCALAPPDATA')
         app_directory = os.path.join(appdata_path, self.APP_NAME)
         os.makedirs(app_directory, exist_ok=True)
@@ -66,8 +66,8 @@ class Config:
                 return data
         else:
             with open(config_path, 'w') as file:
-                json.dump(self.default_config, file, indent=4)
-            return self.default_config
+                json.dump(self._default_config, file, indent=4)
+            return self._default_config
 
     def write_config_to_disk(self):
         if self.current_config == None:
@@ -80,4 +80,4 @@ class Config:
             json.dump(self.current_config, file, indent=4)
 
     def init(self):
-        self.current_config = self.read_config_from_disk()
+        self.current_config = self._read_config_from_disk()
