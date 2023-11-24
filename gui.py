@@ -197,8 +197,8 @@ class Gui:
             dpg.set_value(self.elements[Element.TERMINAL_WINDOW_INPUT], self._terminal_buf)
 
     def on_clear_console(self, *args) -> None:
-        dpg.set_value(
-            self.elements[Element.TERMINAL_WINDOW_INPUT], "Cleared.")
+        self._terminal_buf = ""
+        self.print_terminal("Cleared.")
 
     def add_listeners(self) -> None:
         self.on_clear_console_clicked.add_listener(self.on_clear_console)
