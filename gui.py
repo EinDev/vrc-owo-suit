@@ -111,7 +111,7 @@ class Gui:
 
     def handle_save_settings_callback(self):
         self.config.write_config_to_disk()
-        self.print_terminal("Settings Saved!")
+        self._log.info("Settings Saved!")
 
     def handle_clear_console_callback(self, sender, app_data):
         self.on_clear_console_clicked.dispatch(sender, app_data)

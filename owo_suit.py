@@ -14,7 +14,8 @@ Assembly.UnsafeLoadFrom(dll_path)
 from OWOGame import OWO, SensationsFactory, Muscle, ConnectionState
 
 class OWOSuit:
-    def __init__(self, config: Config, gui: Gui):
+    def __init__(self, config: Config, gui: Gui, log: logging.Logger):
+        self._log = log
         self.config = config
         self.gui = gui
         self.active_muscles: set = set()
@@ -40,10 +41,10 @@ class OWOSuit:
     def toggle_interactions(self):
         self.is_paused = not self.is_paused
         if self.is_paused:
-            self.gui.print_terminal(
+            self._log.info(
                 "Interactions Paused.")
         else:
-            self.gui.print_terminal(
+            self._log.info(
                 "Interactions Continued.")
 
     def create_sensation(self, parameter: str):
@@ -63,7 +64,9 @@ class OWOSuit:
                             self.gui.handle_active_muscle_update(
                                 parameter=parameter)
                             sensation = self.create_sensation(parameter)
+                            self._log.debug("OWO#Send(%s, %s) begin" % (sensation, muscle))
                             OWO.Send(sensation, muscle)
+                            self._log.debug("OWO#Send end")
                     if len(self.active_muscles) == 0:
                         self.gui.handle_active_muscle_reset()
             except RuntimeError:  # race condition for set changing during iteration
@@ -90,10 +93,14 @@ class OWOSuit:
     def connect(self) -> bool:
         owo_ip = self.config.get_by_key("owo_ip")
         if type(owo_ip) is str and owo_ip != "":
+            self._log.debug("OWO#Connect(%s) begin" % owo_ip)
             OWO.Connect(owo_ip)
+            self._log.debug("OWO#Connect end" % owo_ip)
             if self.is_connected():
                 return True
+        self._log.debug("OWO#AutoConnect() begin")
         OWO.AutoConnect()
+        self._log.debug("OWO#AutoConnect end")
         return self.is_connected()
 
     def is_connected(self) -> bool:
@@ -111,7 +118,7 @@ class OWOSuit:
     def retry_connect(self, *args) -> None:
         if self.is_connecting:
             return
-        self.gui.print_terminal("Connecting to suit...")
+        self._log.info("Connecting to suit...")
         self.is_connecting = True
         self.dispatch_connection_state_change()
         ok = self.connect()
@@ -120,7 +127,7 @@ class OWOSuit:
             time.sleep(1)
         self.is_connecting = False
         if self.is_connected():
-            self.gui.print_terminal("Connection complete!")
+            self._log.info("Connection complete!")
         self.has_connected_already = True
         self.dispatch_connection_state_change()
 
