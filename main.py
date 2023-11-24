@@ -31,9 +31,9 @@ try:
     osc_server = ThreadingOSCUDPServer(
         ("127.0.0.1", server_port), dispatcher, asyncio.new_event_loop())
     threading.Thread(target=lambda: osc_server.serve_forever(2),
-                     daemon=True).start()
+                     daemon=True, name="ocs_server").start()
     threading.Thread(target=owo_suit.watch,
-                     daemon=True).start()
+                     daemon=True, name="owo_suit").start()
     gui.run()
 except KeyboardInterrupt:
     log.warning("Shutting Down...\n")
