@@ -1,4 +1,6 @@
 # pyright: reportMissingImports=false
+import logging
+
 from pythonosc import dispatcher
 from event import Event
 from config import Config
